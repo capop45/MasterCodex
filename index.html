@@ -3,139 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Codex do Mestre - Forja com IA</title>
+    <title>Codex do Mestre - Forja com IA & Exportação</title>
     <style>
         /* --- ESTILIZAÇÃO DO TEMA DARK --- */
-        body { 
-            margin: 0; 
-            padding: 0; 
-            background-color: #121212; 
-            color: #e0e0e0; 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            overflow-x: hidden; 
-        }
+        body { margin: 0; padding: 0; background-color: #121212; color: #e0e0e0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow-x: hidden; }
+        #bg-canvas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -1; opacity: 0.8; }
         
-        /* Canvas do Three.js fixo no fundo */
-        #bg-canvas { 
-            position: fixed; 
-            top: 0; 
-            left: 0; 
-            width: 100vw; 
-            height: 100vh; 
-            z-index: -1; 
-            opacity: 0.8; 
-        }
+        .container { max-width: 800px; margin: 40px auto; padding: 30px; background: rgba(25, 25, 25, 0.85); border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.6); backdrop-filter: blur(12px); border: 1px solid #333; margin-bottom: 100px;}
         
-        .container { 
-            max-width: 800px; 
-            margin: 40px auto; 
-            padding: 30px; 
-            background: rgba(25, 25, 25, 0.85); 
-            border-radius: 12px; 
-            box-shadow: 0 8px 32px rgba(0,0,0,0.6); 
-            backdrop-filter: blur(12px); 
-            border: 1px solid #333; 
-        }
-        
-        h1 { 
-            text-align: center; 
-            color: #d4af37; 
-            text-transform: uppercase; 
-            letter-spacing: 2px; 
-            margin-bottom: 30px;
-        }
-        
-        .config-section { 
-            background: #222; 
-            padding: 20px; 
-            border-radius: 8px; 
-            margin-bottom: 25px; 
-            border-left: 4px solid #d4af37; 
-        }
-        
-        label {
-            font-weight: bold;
-            color: #bbb;
-            display: block;
-            margin-bottom: 8px;
-        }
+        h1 { text-align: center; color: #d4af37; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 30px; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+        h2.section-title { color: #aaa; text-transform: uppercase; font-size: 1.1em; border-bottom: 1px solid #444; padding-bottom: 10px; margin-top: 30px; }
 
-        input[type="password"], input[type="text"] { 
-            width: 100%; 
-            padding: 12px; 
-            margin-bottom: 15px; 
-            background: #1a1a1a; 
-            border: 1px solid #444; 
-            color: #fff; 
-            border-radius: 4px; 
-            box-sizing: border-box; 
-            font-size: 16px;
-        }
-        
-        input:focus {
-            outline: none;
-            border-color: #d4af37;
-        }
+        .config-section { background: #222; padding: 20px; border-radius: 8px; margin-bottom: 25px; border-left: 4px solid #d4af37; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        label { font-weight: bold; color: #bbb; display: block; margin-bottom: 8px; }
 
-        button { 
-            background: #d4af37; 
-            color: #121212; 
-            border: none; 
-            padding: 14px 20px; 
-            cursor: pointer; 
-            border-radius: 4px; 
-            font-weight: bold; 
-            font-size: 16px;
-            width: 100%; 
-            transition: background 0.3s, transform 0.1s; 
-        }
-        
-        button:hover { background: #f1c40f; }
-        button:active { transform: scale(0.98); }
+        input[type="password"], input[type="text"] { width: 100%; padding: 12px; margin-bottom: 15px; background: #1a1a1a; border: 1px solid #444; color: #fff; border-radius: 4px; box-sizing: border-box; font-size: 16px; transition: border-color 0.3s; }
+        input:focus { outline: none; border-color: #d4af37; }
+
+        .btn { background: #d4af37; color: #121212; border: none; padding: 14px 20px; cursor: pointer; border-radius: 4px; font-weight: bold; font-size: 16px; width: 100%; transition: background 0.3s, transform 0.1s; text-transform: uppercase; letter-spacing: 1px; }
+        .btn:hover { background: #f1c40f; }
+        .btn:active { transform: scale(0.98); }
+        .btn:disabled { background: #555; color: #aaa; cursor: not-allowed; }
         
         /* Estilos do Cartão Gerado */
-        .card { 
-            background: linear-gradient(145deg, #2a2a2a, #1f1f1f);
-            padding: 25px; 
-            border-radius: 8px; 
-            margin-top: 25px; 
-            display: none; 
-            border: 1px solid #444; 
-            box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
-        }
+        .card { background: linear-gradient(145deg, #2a2a2a, #1f1f1f); padding: 30px; border-radius: 8px; margin-top: 25px; display: none; border: 1px solid #444; box-shadow: inset 0 0 30px rgba(0,0,0,0.7); position: relative;}
         
-        .stat-block { 
-            display: flex; 
-            flex-wrap: wrap; 
-            gap: 10px; 
-            margin-top: 20px; 
-            margin-bottom: 20px;
-        }
+        .stat-block { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; margin-bottom: 20px; }
+        .stat { background: #111; padding: 12px; border-radius: 6px; text-align: center; flex: 1; min-width: 60px; border: 1px solid #333; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+        .stat-name { font-size: 0.8em; color: #888; text-transform: uppercase; font-weight: bold;}
+        .stat-value { font-size: 1.5em; font-weight: bold; color: #d4af37; margin-top: 5px; }
         
-        .stat { 
-            background: #111; 
-            padding: 12px; 
-            border-radius: 6px; 
-            text-align: center; 
-            flex: 1; 
-            min-width: 60px; 
-            border: 1px solid #333;
-        }
-        
-        .stat-name { font-size: 0.8em; color: #888; text-transform: uppercase;}
-        .stat-value { font-size: 1.4em; font-weight: bold; color: #d4af37; margin-top: 5px;}
-        
-        #loading { 
-            display: none; 
-            text-align: center; 
-            color: #d4af37; 
-            margin-top: 20px; 
-            font-style: italic;
-            font-size: 18px;
-        }
-
+        #loading { display: none; text-align: center; color: #d4af37; margin-top: 25px; font-style: italic; font-size: 18px; text-shadow: 0 0 10px rgba(212,175,55,0.5); }
         ul { padding-left: 20px; color: #ccc; }
-        li { margin-bottom: 8px; line-height: 1.5; }
+        li { margin-bottom: 10px; line-height: 1.6; }
+
+        /* Área de Exportação */
+        .export-area { display: none; margin-top: 30px; background: rgba(30, 30, 30, 0.9); padding: 20px; border-radius: 8px; border: 1px solid #444;}
+        .export-buttons { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-top: 15px; }
+        
+        .btn-export { background: #333; color: #d4af37; border: 1px solid #d4af37; padding: 10px; font-size: 14px; }
+        .btn-export:hover { background: #d4af37; color: #121212; }
     </style>
 </head>
 <body>
@@ -145,172 +52,139 @@
         <h1>Codex do Mestre</h1>
         
         <div class="config-section">
-            <label for="apiKey">Chave da API do Gemini (Salva apenas neste navegador):</label>
-            <input type="password" id="apiKey" placeholder="Cole sua API Key aqui...">
-            <button onclick="saveKey()">Salvar Chave Segura</button>
+            <label for="apiKey">Chave da API do Gemini:</label>
+            <input type="password" id="apiKey" placeholder="Cole sua API Key do Google AI Studio...">
+            <button class="btn" onclick="saveKey()">Salvar Chave Segura</button>
         </div>
 
         <div>
             <label for="prompt">O que os deuses devem forjar hoje?</label>
-            <input type="text" id="prompt" placeholder="Ex: Um líder bandido elfo da floresta para um grupo de nível 3...">
-            <button onclick="generateContent()">Invocar Criação</button>
+            <input type="text" id="prompt" placeholder="Ex: Um Dragão Ancião de Gelo Lendário Nível 20...">
+            <button id="invokeBtn" class="btn" onclick="generateContent()">Invocar Criação</button>
         </div>
         
         <div id="loading">Consultando os tomos antigos... aguarde.</div>
 
         <div id="outputCard" class="card">
-            <h2 id="cardName" style="color: #d4af37; margin-top: 0; border-bottom: 1px solid #444; padding-bottom: 10px;"></h2>
-            <p style="color: #ccc; line-height: 1.6; font-style: italic;">"<span id="cardDesc"></span>"</p>
+            <h2 id="cardName" style="color: #d4af37; margin-top: 0; border-bottom: 2px solid #d4af37; padding-bottom: 15px; text-transform: uppercase; letter-spacing: 1px;"></h2>
+            <p style="color: #ccc; line-height: 1.6; font-style: italic; font-size: 1.1em; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 4px;">"<span id="cardDesc"></span>"</p>
             
             <div class="stat-block" id="statsArea"></div>
             
-            <h3 style="color: #d4af37; margin-bottom: 10px;">Ações & Habilidades:</h3>
+            <h3 style="color: #d4af37; margin-bottom: 15px; border-bottom: 1px solid #444; padding-bottom: 5px;">Ações & Habilidades:</h3>
             <ul id="cardActions"></ul>
+        </div>
+
+        <div id="exportArea" class="export-area">
+            <h2 class="section-title">Exportar Criação</h2>
+            <div class="export-buttons">
+                <button class="btn btn-export" onclick="exportAsJson()">⬇️ JSON</button>
+                <button class="btn btn-export" onclick="exportAsHtml()">⬇️ HTML</button>
+                <button class="btn btn-export" onclick="exportAsPng()">⬇️ PNG (Imagem)</button>
+                <button class="btn btn-export" onclick="exportAsPdf()">⬇️ PDF</button>
+                <button class="btn btn-export" onclick="exportAsXlsx()">⬇️ Excel (XLSX)</button>
+            </div>
         </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
     <script>
-        // --- 1. CONFIGURAÇÃO DO THREE.JS (O D20 3D) ---
-        const canvas = document.getElementById('bg-canvas');
+        // --- 1. CONFIGURAÇÃO DO THREE.JS (D20) ---
         const scene = new THREE.Scene();
-        
-        // Câmera adaptada para a tela
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
-        
+        const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('bg-canvas'), alpha: true, antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(window.devicePixelRatio);
-
-        // Geometria de Icosaedro é exatamente um dado de 20 faces (D20)
-        const geometry = new THREE.IcosahedronGeometry(3, 0);
-        
-        // Material wireframe dourado
-        const material = new THREE.MeshBasicMaterial({ 
-            color: 0xd4af37, 
-            wireframe: true,
-            transparent: true,
-            opacity: 0.15 // Bem sutil para não atrapalhar a leitura
-        });
-        
-        const d20 = new THREE.Mesh(geometry, material);
-        
-        // Posicionando o dado um pouco para a direita
+        const d20 = new THREE.Mesh(new THREE.IcosahedronGeometry(3, 0), new THREE.MeshBasicMaterial({ color: 0xd4af37, wireframe: true, transparent: true, opacity: 0.15 }));
         d20.position.set(4, 0, -8);
         scene.add(d20);
-
-        // Função de Animação
-        function animate() {
-            requestAnimationFrame(animate);
-            // Rotação contínua e suave
-            d20.rotation.x += 0.002;
-            d20.rotation.y += 0.003;
-            renderer.render(scene, camera);
-        }
+        function animate() { requestAnimationFrame(animate); d20.rotation.x += 0.002; d20.rotation.y += 0.003; renderer.render(scene, camera); }
         animate();
+        window.addEventListener('resize', () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
 
-        // Responsividade do 3D ao redimensionar a janela
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
-
-
-        // --- 2. LÓGICA DO APP E INTEGRAÇÃO COM GEMINI API ---
+        // --- 2. LÓGICA DO GEMINI API ---
         
-        // Carrega a chave ao abrir a página
+        // Variável global para guardar os dados brutos da última geração
+        let currentGenerationData = null;
+
         document.addEventListener('DOMContentLoaded', () => {
             const savedKey = localStorage.getItem('dndGeminiApiKey');
-            if (savedKey) {
-                document.getElementById('apiKey').value = savedKey;
-            }
+            if (savedKey) document.getElementById('apiKey').value = savedKey;
         });
 
         function saveKey() {
             const key = document.getElementById('apiKey').value.trim();
-            if (key) {
-                localStorage.setItem('dndGeminiApiKey', key);
-                alert('Chave salva com segurança no seu navegador!');
-            }
+            if (key) { localStorage.setItem('dndGeminiApiKey', key); alert('Chave salva com segurança!'); }
         }
 
         async function generateContent() {
             const apiKey = localStorage.getItem('dndGeminiApiKey');
             const promptInput = document.getElementById('prompt').value.trim();
+            const invokeBtn = document.getElementById('invokeBtn');
 
-            if (!apiKey) {
-                alert('Mestre, você precisa salvar a Chave da API primeiro.');
-                return;
-            }
-            if (!promptInput) {
-                alert('Descreva o que deseja criar.');
-                return;
-            }
+            if (!apiKey) { alert('Mestre, salve a Chave da API primeiro.'); return; }
+            if (!promptInput) { alert('Descreva o que deseja criar.'); return; }
 
-            // UI updates
+            // UI Updates
             document.getElementById('loading').style.display = 'block';
             document.getElementById('outputCard').style.display = 'none';
-            
-            // Efeito visual: o D20 gira rápido enquanto "pensa"
-            d20.rotation.x += 0.5;
-            d20.rotation.y += 0.5;
+            document.getElementById('exportArea').style.display = 'none';
+            invokeBtn.disabled = true;
+            invokeBtn.innerText = 'Invocando...';
 
-            // Prompt focado em extrair um JSON limpo
+            // Prompt focado em JSON limpo e estruturado
             const systemPrompt = `
-                Atue como um Mestre de Dungeons & Dragons 5e. 
-                Crie o conteúdo solicitado e retorne EXCLUSIVAMENTE um objeto JSON válido, sem marcação markdown (não use \`\`\`json), com a estrutura exata abaixo:
+                Atue como um Mestre de Dungeons & Dragons 5e. Crie o conteúdo solicitado e retorne EXCLUSIVAMENTE um objeto JSON válido, sem markdown (\`\`\`json), com esta estrutura:
                 {
-                    "nome": "Nome do NPC ou Monstro",
-                    "descricao": "Aparência e comportamento resumidos",
-                    "atributos": {"FOR": 15, "DES": 12, "CON": 14, "INT": 8, "SAB": 10, "CAR": 8},
-                    "acoes": ["Ataque com Espada Curta: +5 para acertar, 1d6+3 de dano cortante.", "Habilidade Especial: Detalhes aqui."]
+                    "nome": "Nome em Português",
+                    "descricao": "Descrição concisa da aparência e comportamento",
+                    "atributos": {"FOR": 10, "DES": 10, "CON": 10, "INT": 10, "SAB": 10, "CAR": 10},
+                    "acoes": ["Ação 1: Detalhes", "Habilidade 1: Detalhes"]
                 }
-                
                 Pedido: ${promptInput}
             `;
 
             try {
-                // Usando a API do Gemini
                 const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: systemPrompt }] }]
-                    })
+                    body: JSON.stringify({ contents: [{ parts: [{ text: systemPrompt }] }] })
                 });
 
-                if (!response.ok) {
-                    throw new Error('Falha na comunicação com a API. Verifique sua chave.');
-                }
+                if (!response.ok) throw new Error('Falha na API. Verifique a chave.');
 
                 const data = await response.json();
-                
-                // Limpeza preventiva de possíveis crases markdown do retorno do Gemini
                 let jsonText = data.candidates[0].content.parts[0].text;
                 jsonText = jsonText.replace(/```json/gi, '').replace(/```/g, '').trim();
                 
-                const result = JSON.parse(jsonText);
-                renderCard(result);
+                // Salva os dados gerados globalmente para exportação posterior
+                currentGenerationData = JSON.parse(jsonText);
+                
+                renderCard(currentGenerationData);
+                document.getElementById('exportArea').style.display = 'block'; // Mostra área de exportação
 
             } catch (error) {
                 console.error(error);
                 alert('Erro na invocação: ' + error.message);
             } finally {
                 document.getElementById('loading').style.display = 'none';
+                invokeBtn.disabled = false;
+                invokeBtn.innerText = 'Invocar Criação';
             }
         }
 
-        // Função para injetar o JSON no HTML
         function renderCard(data) {
-            document.getElementById('cardName').innerText = data.nome || 'Entidade Desconhecida';
-            document.getElementById('cardDesc').innerText = data.descricao || 'Nenhuma descrição fornecida.';
+            document.getElementById('cardName').innerText = data.nome || 'Entidade';
+            document.getElementById('cardDesc').innerText = data.descricao || 'Sem descrição.';
             
             const statsArea = document.getElementById('statsArea');
             statsArea.innerHTML = '';
-            
-            // Renderiza os atributos dinamicamente
             if (data.atributos) {
                 for (const [key, value] of Object.entries(data.atributos)) {
                     statsArea.innerHTML += `
@@ -323,19 +197,181 @@
             }
 
             const actionsArea = document.getElementById('cardActions');
-            actionsArea.innerHTML = '';
-            
-            // Renderiza a lista de ações
-            if (data.acoes && data.acoes.length > 0) {
-                data.acoes.forEach(acao => {
-                    actionsArea.innerHTML += `<li>${acao}</li>`;
+            actionsArea.innerHTML = data.acoes && data.acoes.length > 0 
+                ? data.acoes.map(acao => `<li>${acao}</li>`).join('')
+                : '<li>Nenhuma ação definida.</li>';
+
+            document.getElementById('outputCard').style.display = 'block';
+        }
+
+        // --- 3. LÓGICA DE EXPORTAÇÃO ---
+
+        // Função auxiliar para sanitizar nomes de arquivos
+        function getSafeFileName(extension) {
+            const name = currentGenerationData?.nome || 'codex_criacao';
+            const cleanName = name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+            const timestamp = new Date().getTime();
+            return `${cleanName}_${timestamp}.${extension}`;
+        }
+
+        // Função auxiliar para download de Blob
+        function downloadBlob(blob, fileName) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // ⬇️ Exportar como JSON puro
+        function exportAsJson() {
+            if (!currentGenerationData) return;
+            const jsonStr = JSON.stringify(currentGenerationData, null, 4);
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+            downloadBlob(blob, getSafeFileName('json'));
+        }
+
+        // ⬇️ Exportar como HTML autônomo (com estilos inline)
+        function exportAsHtml() {
+            if (!currentGenerationData) return;
+            const cardHtml = document.getElementById('outputCard').innerHTML;
+            const fullHtml = `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>${currentGenerationData.nome} - Codex</title>
+    <style>
+        body { background: #121212; color: #e0e0e0; font-family: sans-serif; padding: 20px; }
+        .card { background: #1f1f1f; padding: 30px; border-radius: 8px; border: 1px solid #444; max-width: 700px; margin: 0 auto; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
+        .stat-block { display: flex; gap: 10px; margin: 20px 0; }
+        .stat { background: #111; padding: 12px; border-radius: 6px; text-align: center; flex: 1; border: 1px solid #333; }
+        .stat-name { font-size: 0.8em; color: #888; text-transform: uppercase; }
+        .stat-value { font-size: 1.5em; font-weight: bold; color: #d4af37; }
+        ul { padding-left: 20px; color: #ccc; }
+        li { margin-bottom: 10px; line-height: 1.6; }
+    </style>
+</head>
+<body>
+    <div class="card">${cardHtml}</div>
+</body>
+</html>`;
+            const blob = new Blob([fullHtml], { type: 'text/html' });
+            downloadBlob(blob, getSafeFileName('html'));
+        }
+
+        // ⬇️ Exportar como PNG (Imagem) usando html2canvas
+        function exportAsPng() {
+            const cardElement = document.getElementById('outputCard');
+            if (!cardElement) return;
+
+            // Alerta visual de processamento
+            const btn = event.target;
+            const originalText = btn.innerText;
+            btn.innerText = '📷 Gerando...';
+            btn.disabled = true;
+
+            html2canvas(cardElement, {
+                backgroundColor: '#1f1f1f', // Garante fundo escuro na imagem
+                scale: 2, // Aumenta a resolução
+                useCORS: true, // Necessário se houver imagens externas
+                logging: false
+            }).then(canvas => {
+                canvas.toBlob(blob => {
+                    downloadBlob(blob, getSafeFileName('png'));
+                    btn.innerText = originalText;
+                    btn.disabled = false;
                 });
-            } else {
-                 actionsArea.innerHTML = `<li>Nenhuma ação de combate mapeada.</li>`;
+            }).catch(err => {
+                console.error(err);
+                alert('Erro ao gerar imagem.');
+                btn.innerText = originalText;
+                btn.disabled = false;
+            });
+        }
+
+        // ⬇️ Exportar como PDF usando jsPDF (captura a imagem gerada pelo html2canvas)
+        function exportAsPdf() {
+            const cardElement = document.getElementById('outputCard');
+            if (!cardElement) return;
+
+            const btn = event.target;
+            const originalText = btn.innerText;
+            btn.innerText = '📄 Gerando...';
+            btn.disabled = true;
+
+            html2canvas(cardElement, { backgroundColor: '#1f1f1f', scale: 2 }).then(canvas => {
+                const imgData = canvas.toDataURL('image/png');
+                
+                // Configuração do PDF (A4, retrato, mm)
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                
+                // Calcula dimensões para caber na página A4 mantendo proporção
+                const pageWidth = pdf.internal.pageSize.getWidth();
+                const pageHeight = pdf.internal.pageSize.getHeight();
+                const margin = 10; // 10mm de margem
+                
+                const imgWidth = pageWidth - (margin * 2);
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                
+                // Adiciona a imagem ao PDF (centralizada)
+                pdf.addImage(imgData, 'PNG', margin, margin, imgWidth, imgHeight);
+                
+                pdf.save(getSafeFileName('pdf'));
+                
+                btn.innerText = originalText;
+                btn.disabled = false;
+            });
+        }
+
+        // ⬇️ Exportar como Excel (XLSX) usando SheetJS
+        function exportAsXlsx() {
+            if (!currentGenerationData) return;
+
+            const d = currentGenerationData;
+
+            // 1. Estrutura os dados para o Excel (achatando o JSON)
+            // Criamos linhas: Metadados, Atributos, Ações
+            const dataRows = [
+                ["CODEX DO MESTRE - D&D 5E", ""],
+                ["", ""],
+                ["NOME", d.nome],
+                ["DESCRIÇÃO", d.descricao],
+                ["", ""],
+                ["ATRIBUTOS", ""],
+                ["FOR", d.atributos.FOR],
+                ["DES", d.atributos.DES],
+                ["CON", d.atributos.CON],
+                ["INT", d.atributos.INT],
+                ["SAB", d.atributos.SAB],
+                ["CAR", d.atributos.CAR],
+                ["", ""],
+                ["AÇÕES E HABILIDADES", ""]
+            ];
+
+            // Adiciona cada ação como uma nova linha
+            if (d.acoes) {
+                d.acoes.forEach((acao, index) => {
+                    dataRows.push([`Ação ${index + 1}`, acao]);
+                });
             }
 
-            // Exibe o cartão
-            document.getElementById('outputCard').style.display = 'block';
+            // 2. Cria a planilha (Worksheet)
+            const ws = XLSX.utils.aoa_to_sheet(dataRows);
+            
+            // Estilização básica (largura das colunas)
+            ws['!cols'] = [{ wch: 20 }, { wch: 80 }];
+
+            // 3. Cria o arquivo (Workbook) e adiciona a planilha
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Criacao");
+
+            // 4. Salva o arquivo
+            XLSX.writeFile(wb, getSafeFileName('xlsx'));
         }
     </script>
 </body>
