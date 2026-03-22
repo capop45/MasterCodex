@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Codex do Mestre - Forja com IA & Exportação</title>
+    
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><polygon points='50,10 10,40 50,90' fill='%23d4af37'/><polygon points='50,10 90,40 50,90' fill='%23b89020'/><polygon points='10,40 90,40 50,90' fill='%23f1c40f' opacity='0.7'/></svg>" type="image/svg+xml">
+
     <style>
         /* --- ESTILIZAÇÃO DO TEMA DARK --- */
         body { margin: 0; padding: 0; background-color: #121212; color: #e0e0e0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow-x: hidden; }
@@ -11,14 +14,21 @@
         
         .container { max-width: 800px; margin: 40px auto; padding: 30px; background: rgba(25, 25, 25, 0.85); border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.6); backdrop-filter: blur(12px); border: 1px solid #333; margin-bottom: 100px;}
         
-        h1 { text-align: center; color: #d4af37; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 30px; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+        h1 { text-align: center; color: #d4af37; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 30px; text-shadow: 0 2px 4px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; gap: 10px;}
         h2.section-title { color: #aaa; text-transform: uppercase; font-size: 1.1em; border-bottom: 1px solid #444; padding-bottom: 10px; margin-top: 30px; }
 
         .config-section { background: #222; padding: 20px; border-radius: 8px; margin-bottom: 25px; border-left: 4px solid #d4af37; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        
         label { font-weight: bold; color: #bbb; display: block; margin-bottom: 8px; }
 
         input[type="password"], input[type="text"] { width: 100%; padding: 12px; margin-bottom: 15px; background: #1a1a1a; border: 1px solid #444; color: #fff; border-radius: 4px; box-sizing: border-box; font-size: 16px; transition: border-color 0.3s; }
         input:focus { outline: none; border-color: #d4af37; }
+
+        /* Botão customizado para input de arquivo */
+        .file-upload-wrapper { position: relative; overflow: hidden; display: inline-block; width: 100%; margin-bottom: 15px; }
+        .file-upload-wrapper input[type="file"] { font-size: 100px; position: absolute; left: 0; top: 0; opacity: 0; cursor: pointer; height: 100%; }
+        .file-upload-btn { background: #333; color: #d4af37; border: 1px dashed #d4af37; padding: 12px; text-align: center; border-radius: 4px; font-weight: bold; cursor: pointer; transition: background 0.3s; }
+        .file-upload-wrapper:hover .file-upload-btn { background: #222; }
 
         .btn { background: #d4af37; color: #121212; border: none; padding: 14px 20px; cursor: pointer; border-radius: 4px; font-weight: bold; font-size: 16px; width: 100%; transition: background 0.3s, transform 0.1s; text-transform: uppercase; letter-spacing: 1px; }
         .btn:hover { background: #f1c40f; }
@@ -28,6 +38,9 @@
         /* Estilos do Cartão Gerado */
         .card { background: linear-gradient(145deg, #2a2a2a, #1f1f1f); padding: 30px; border-radius: 8px; margin-top: 25px; display: none; border: 1px solid #444; box-shadow: inset 0 0 30px rgba(0,0,0,0.7); position: relative;}
         
+        .card-image-container { text-align: center; margin-bottom: 20px; display: none; }
+        .card-image-container img { max-width: 100%; max-height: 300px; border-radius: 8px; border: 2px solid #d4af37; box-shadow: 0 4px 15px rgba(0,0,0,0.5); object-fit: cover; }
+
         .stat-block { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; margin-bottom: 20px; }
         .stat { background: #111; padding: 12px; border-radius: 6px; text-align: center; flex: 1; min-width: 60px; border: 1px solid #333; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
         .stat-name { font-size: 0.8em; color: #888; text-transform: uppercase; font-weight: bold;}
@@ -49,7 +62,10 @@
     <canvas id="bg-canvas"></canvas>
 
     <div class="container">
-        <h1>Codex do Mestre</h1>
+        <h1>
+            <svg width="30" height="30" viewBox="0 0 100 100"><polygon points="50,10 10,40 50,90" fill="#d4af37"/><polygon points="50,10 90,40 50,90" fill="#b89020"/><polygon points="10,40 90,40 50,90" fill="#f1c40f" opacity="0.7"/></svg>
+            Codex do Mestre
+        </h1>
         
         <div class="config-section">
             <label for="apiKey">Chave da API do Gemini:</label>
@@ -60,12 +76,23 @@
         <div>
             <label for="prompt">O que os deuses devem forjar hoje?</label>
             <input type="text" id="prompt" placeholder="Ex: Um Dragão Ancião de Gelo Lendário Nível 20...">
+            
+            <label>Ilustração da Criação (Opcional):</label>
+            <div class="file-upload-wrapper">
+                <div class="file-upload-btn" id="fileNameDisplay">📸 Escolher Imagem do Monstro/NPC</div>
+                <input type="file" id="imageUpload" accept="image/*" onchange="handleImageUpload(event)">
+            </div>
+
             <button id="invokeBtn" class="btn" onclick="generateContent()">Invocar Criação</button>
         </div>
         
         <div id="loading">Consultando os tomos antigos... aguarde.</div>
 
         <div id="outputCard" class="card">
+            <div id="cardImageContainer" class="card-image-container">
+                <img id="cardImage" src="" alt="Ilustração da Criação">
+            </div>
+
             <h2 id="cardName" style="color: #d4af37; margin-top: 0; border-bottom: 2px solid #d4af37; padding-bottom: 15px; text-transform: uppercase; letter-spacing: 1px;"></h2>
             <p style="color: #ccc; line-height: 1.6; font-style: italic; font-size: 1.1em; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 4px;">"<span id="cardDesc"></span>"</p>
             
@@ -88,12 +115,9 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
     
     <script>
         // --- 1. CONFIGURAÇÃO DO THREE.JS (D20) ---
@@ -108,10 +132,10 @@
         animate();
         window.addEventListener('resize', () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
 
-        // --- 2. LÓGICA DO GEMINI API ---
+        // --- 2. LÓGICA DE DADOS, IMAGEM E GEMINI ---
         
-        // Variável global para guardar os dados brutos da última geração
         let currentGenerationData = null;
+        let uploadedImageBase64 = null; // Armazena a imagem do usuário
 
         document.addEventListener('DOMContentLoaded', () => {
             const savedKey = localStorage.getItem('dndGeminiApiKey');
@@ -123,6 +147,24 @@
             if (key) { localStorage.setItem('dndGeminiApiKey', key); alert('Chave salva com segurança!'); }
         }
 
+        // Carrega a imagem e converte para base64
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            const btnDisplay = document.getElementById('fileNameDisplay');
+            
+            if (file) {
+                btnDisplay.innerText = "🖼️ " + file.name;
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    uploadedImageBase64 = e.target.result;
+                }
+                reader.readAsDataURL(file);
+            } else {
+                btnDisplay.innerText = "📸 Escolher Imagem do Monstro/NPC";
+                uploadedImageBase64 = null;
+            }
+        }
+
         async function generateContent() {
             const apiKey = localStorage.getItem('dndGeminiApiKey');
             const promptInput = document.getElementById('prompt').value.trim();
@@ -131,14 +173,12 @@
             if (!apiKey) { alert('Mestre, salve a Chave da API primeiro.'); return; }
             if (!promptInput) { alert('Descreva o que deseja criar.'); return; }
 
-            // UI Updates
             document.getElementById('loading').style.display = 'block';
             document.getElementById('outputCard').style.display = 'none';
             document.getElementById('exportArea').style.display = 'none';
             invokeBtn.disabled = true;
             invokeBtn.innerText = 'Invocando...';
 
-            // Prompt focado em JSON limpo e estruturado
             const systemPrompt = `
                 Atue como um Mestre de Dungeons & Dragons 5e. Crie o conteúdo solicitado e retorne EXCLUSIVAMENTE um objeto JSON válido, sem markdown (\`\`\`json), com esta estrutura:
                 {
@@ -163,11 +203,9 @@
                 let jsonText = data.candidates[0].content.parts[0].text;
                 jsonText = jsonText.replace(/```json/gi, '').replace(/```/g, '').trim();
                 
-                // Salva os dados gerados globalmente para exportação posterior
                 currentGenerationData = JSON.parse(jsonText);
-                
                 renderCard(currentGenerationData);
-                document.getElementById('exportArea').style.display = 'block'; // Mostra área de exportação
+                document.getElementById('exportArea').style.display = 'block';
 
             } catch (error) {
                 console.error(error);
@@ -180,6 +218,18 @@
         }
 
         function renderCard(data) {
+            // Lida com a imagem
+            const imgContainer = document.getElementById('cardImageContainer');
+            const imgElement = document.getElementById('cardImage');
+            
+            if (uploadedImageBase64) {
+                imgElement.src = uploadedImageBase64;
+                imgContainer.style.display = 'block';
+            } else {
+                imgElement.src = '';
+                imgContainer.style.display = 'none';
+            }
+
             document.getElementById('cardName').innerText = data.nome || 'Entidade';
             document.getElementById('cardDesc').innerText = data.descricao || 'Sem descrição.';
             
@@ -206,7 +256,6 @@
 
         // --- 3. LÓGICA DE EXPORTAÇÃO ---
 
-        // Função auxiliar para sanitizar nomes de arquivos
         function getSafeFileName(extension) {
             const name = currentGenerationData?.nome || 'codex_criacao';
             const cleanName = name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
@@ -214,7 +263,6 @@
             return `${cleanName}_${timestamp}.${extension}`;
         }
 
-        // Função auxiliar para download de Blob
         function downloadBlob(blob, fileName) {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -226,15 +274,16 @@
             URL.revokeObjectURL(url);
         }
 
-        // ⬇️ Exportar como JSON puro
+        // ⬇️ JSON
         function exportAsJson() {
             if (!currentGenerationData) return;
-            const jsonStr = JSON.stringify(currentGenerationData, null, 4);
+            const exportData = { ...currentGenerationData, imagemBase64: uploadedImageBase64 || null };
+            const jsonStr = JSON.stringify(exportData, null, 4);
             const blob = new Blob([jsonStr], { type: 'application/json' });
             downloadBlob(blob, getSafeFileName('json'));
         }
 
-        // ⬇️ Exportar como HTML autônomo (com estilos inline)
+        // ⬇️ HTML
         function exportAsHtml() {
             if (!currentGenerationData) return;
             const cardHtml = document.getElementById('outputCard').innerHTML;
@@ -247,6 +296,8 @@
     <style>
         body { background: #121212; color: #e0e0e0; font-family: sans-serif; padding: 20px; }
         .card { background: #1f1f1f; padding: 30px; border-radius: 8px; border: 1px solid #444; max-width: 700px; margin: 0 auto; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
+        .card-image-container { text-align: center; margin-bottom: 20px; }
+        .card-image-container img { max-width: 100%; max-height: 400px; border-radius: 8px; border: 2px solid #d4af37; }
         .stat-block { display: flex; gap: 10px; margin: 20px 0; }
         .stat { background: #111; padding: 12px; border-radius: 6px; text-align: center; flex: 1; border: 1px solid #333; }
         .stat-name { font-size: 0.8em; color: #888; text-transform: uppercase; }
@@ -263,115 +314,155 @@
             downloadBlob(blob, getSafeFileName('html'));
         }
 
-        // ⬇️ Exportar como PNG (Imagem) usando html2canvas
+        // ⬇️ PNG
         function exportAsPng() {
             const cardElement = document.getElementById('outputCard');
             if (!cardElement) return;
-
-            // Alerta visual de processamento
             const btn = event.target;
             const originalText = btn.innerText;
             btn.innerText = '📷 Gerando...';
             btn.disabled = true;
 
-            html2canvas(cardElement, {
-                backgroundColor: '#1f1f1f', // Garante fundo escuro na imagem
-                scale: 2, // Aumenta a resolução
-                useCORS: true, // Necessário se houver imagens externas
-                logging: false
-            }).then(canvas => {
-                canvas.toBlob(blob => {
-                    downloadBlob(blob, getSafeFileName('png'));
-                    btn.innerText = originalText;
-                    btn.disabled = false;
-                });
-            }).catch(err => {
-                console.error(err);
-                alert('Erro ao gerar imagem.');
-                btn.innerText = originalText;
-                btn.disabled = false;
-            });
+            html2canvas(cardElement, { backgroundColor: '#1f1f1f', scale: 2, useCORS: true }).then(canvas => {
+                canvas.toBlob(blob => { downloadBlob(blob, getSafeFileName('png')); btn.innerText = originalText; btn.disabled = false; });
+            }).catch(err => { alert('Erro ao gerar imagem.'); btn.innerText = originalText; btn.disabled = false; });
         }
 
-        // ⬇️ Exportar como PDF usando jsPDF (captura a imagem gerada pelo html2canvas)
+        // ⬇️ PDF
         function exportAsPdf() {
             const cardElement = document.getElementById('outputCard');
             if (!cardElement) return;
-
             const btn = event.target;
             const originalText = btn.innerText;
             btn.innerText = '📄 Gerando...';
             btn.disabled = true;
 
-            html2canvas(cardElement, { backgroundColor: '#1f1f1f', scale: 2 }).then(canvas => {
+            html2canvas(cardElement, { backgroundColor: '#1f1f1f', scale: 2, useCORS: true }).then(canvas => {
                 const imgData = canvas.toDataURL('image/png');
-                
-                // Configuração do PDF (A4, retrato, mm)
                 const { jsPDF } = window.jspdf;
                 const pdf = new jsPDF('p', 'mm', 'a4');
-                
-                // Calcula dimensões para caber na página A4 mantendo proporção
                 const pageWidth = pdf.internal.pageSize.getWidth();
-                const pageHeight = pdf.internal.pageSize.getHeight();
-                const margin = 10; // 10mm de margem
-                
+                const margin = 10;
                 const imgWidth = pageWidth - (margin * 2);
                 const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                
-                // Adiciona a imagem ao PDF (centralizada)
                 pdf.addImage(imgData, 'PNG', margin, margin, imgWidth, imgHeight);
-                
                 pdf.save(getSafeFileName('pdf'));
-                
                 btn.innerText = originalText;
                 btn.disabled = false;
             });
         }
 
-        // ⬇️ Exportar como Excel (XLSX) usando SheetJS
-        function exportAsXlsx() {
+        // ⬇️ Excel (Sofisticado com ExcelJS)
+        async function exportAsXlsx() {
             if (!currentGenerationData) return;
-
             const d = currentGenerationData;
+            const btn = event.target;
+            const originalText = btn.innerText;
+            btn.innerText = '📊 Gerando...';
+            btn.disabled = true;
 
-            // 1. Estrutura os dados para o Excel (achatando o JSON)
-            // Criamos linhas: Metadados, Atributos, Ações
-            const dataRows = [
-                ["CODEX DO MESTRE - D&D 5E", ""],
-                ["", ""],
-                ["NOME", d.nome],
-                ["DESCRIÇÃO", d.descricao],
-                ["", ""],
-                ["ATRIBUTOS", ""],
-                ["FOR", d.atributos.FOR],
-                ["DES", d.atributos.DES],
-                ["CON", d.atributos.CON],
-                ["INT", d.atributos.INT],
-                ["SAB", d.atributos.SAB],
-                ["CAR", d.atributos.CAR],
-                ["", ""],
-                ["AÇÕES E HABILIDADES", ""]
-            ];
+            try {
+                const workbook = new ExcelJS.Workbook();
+                const worksheet = workbook.addWorksheet('Codex');
 
-            // Adiciona cada ação como uma nova linha
-            if (d.acoes) {
-                d.acoes.forEach((acao, index) => {
-                    dataRows.push([`Ação ${index + 1}`, acao]);
+                // Largura das colunas
+                worksheet.columns = [
+                    { header: '', key: 'A', width: 22 },
+                    { header: '', key: 'B', width: 80 }
+                ];
+
+                // Título principal
+                const titleRow = worksheet.addRow(['CODEX DO MESTRE - D&D 5E', '']);
+                titleRow.font = { name: 'Arial', size: 16, bold: true, color: { argb: 'FFD4AF37' } }; // Gold
+                titleRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF121212' } }; // Dark Bg
+                worksheet.mergeCells('A1:B1');
+                titleRow.alignment = { horizontal: 'center', vertical: 'middle' };
+
+                worksheet.addRow([]); // Espaço em branco
+
+                // Insere Imagem no Excel se existir
+                let rowOffset = 3;
+                if (uploadedImageBase64) {
+                    const base64Data = uploadedImageBase64.split(';base64,')[1];
+                    const extension = uploadedImageBase64.substring("data:image/".length, uploadedImageBase64.indexOf(";base64"));
+                    
+                    const imageId = workbook.addImage({
+                        base64: base64Data,
+                        extension: extension === 'jpeg' ? 'jpeg' : 'png',
+                    });
+
+                    // Coloca a imagem centralizada na planilha
+                    worksheet.addImage(imageId, {
+                        tl: { col: 0.5, row: rowOffset - 0.5 },
+                        ext: { width: 160, height: 160 }
+                    });
+
+                    // Pula linhas para não sobrepor o texto embaixo da imagem
+                    for(let i = 0; i < 9; i++) worksheet.addRow([]);
+                }
+
+                // Nome e Descrição
+                const nameRow = worksheet.addRow(['NOME', d.nome]);
+                nameRow.font = { size: 12, bold: true, color: { argb: 'FFE0E0E0' } };
+                nameRow.getCell(1).font = { bold: true, color: { argb: 'FFD4AF37' } };
+
+                const descRow = worksheet.addRow(['DESCRIÇÃO', d.descricao]);
+                descRow.getCell(1).font = { bold: true, color: { argb: 'FFD4AF37' } };
+                descRow.getCell(2).alignment = { wrapText: true };
+                descRow.getCell(2).font = { italic: true, color: { argb: 'FFCCCCCC' } };
+
+                worksheet.addRow([]);
+
+                // Atributos
+                const attrTitle = worksheet.addRow(['ATRIBUTOS', '']);
+                attrTitle.font = { bold: true, color: { argb: 'FFD4AF37' } };
+                attrTitle.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF222222' } };
+
+                for (const [key, value] of Object.entries(d.atributos)) {
+                    const r = worksheet.addRow([key, value]);
+                    r.getCell(1).font = { color: { argb: 'FF888888' } };
+                    r.getCell(2).font = { bold: true, color: { argb: 'FFD4AF37' } };
+                }
+
+                worksheet.addRow([]);
+
+                // Ações
+                const actTitle = worksheet.addRow(['AÇÕES E HABILIDADES', '']);
+                actTitle.font = { bold: true, color: { argb: 'FFD4AF37' } };
+                actTitle.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF222222' } };
+
+                if (d.acoes) {
+                    d.acoes.forEach(acao => {
+                        const r = worksheet.addRow(['', acao]);
+                        r.getCell(2).alignment = { wrapText: true };
+                    });
+                }
+
+                // Aplica o Dark Mode em todas as células desenhadas e adiciona bordas de grade sutis
+                worksheet.eachRow({ includeEmpty: true }, function(row, rowNumber) {
+                    row.eachCell({ includeEmpty: true }, function(cell, colNumber) {
+                        if (!cell.fill) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F1F1F' } };
+                        if (!cell.font) cell.font = { color: { argb: 'FFE0E0E0' } };
+                        cell.border = {
+                            top: {style:'thin', color: {argb:'FF333333'}},
+                            left: {style:'thin', color: {argb:'FF333333'}},
+                            bottom: {style:'thin', color: {argb:'FF333333'}},
+                            right: {style:'thin', color: {argb:'FF333333'}}
+                        };
+                    });
                 });
+
+                const buffer = await workbook.xlsx.writeBuffer();
+                const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                downloadBlob(blob, getSafeFileName('xlsx'));
+
+            } catch (e) {
+                console.error(e);
+                alert('Erro ao gerar a planilha sofisticada do Excel.');
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
             }
-
-            // 2. Cria a planilha (Worksheet)
-            const ws = XLSX.utils.aoa_to_sheet(dataRows);
-            
-            // Estilização básica (largura das colunas)
-            ws['!cols'] = [{ wch: 20 }, { wch: 80 }];
-
-            // 3. Cria o arquivo (Workbook) e adiciona a planilha
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Criacao");
-
-            // 4. Salva o arquivo
-            XLSX.writeFile(wb, getSafeFileName('xlsx'));
         }
     </script>
 </body>
