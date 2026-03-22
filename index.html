@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Codex do Mestre - Forja com IA</title>
+    <style>
+        /* --- ESTILIZAÇÃO DO TEMA DARK --- */
+        body { 
+            margin: 0; 
+            padding: 0; 
+            background-color: #121212; 
+            color: #e0e0e0; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            overflow-x: hidden; 
+        }
+        
+        /* Canvas do Three.js fixo no fundo */
+        #bg-canvas { 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100vw; 
+            height: 100vh; 
+            z-index: -1; 
+            opacity: 0.8; 
+        }
+        
+        .container { 
+            max-width: 800px; 
+            margin: 40px auto; 
+            padding: 30px; 
+            background: rgba(25, 25, 25, 0.85); 
+            border-radius: 12px; 
+            box-shadow: 0 8px 32px rgba(0,0,0,0.6); 
+            backdrop-filter: blur(12px); 
+            border: 1px solid #333; 
+        }
+        
+        h1 { 
+            text-align: center; 
+            color: #d4af37; 
+            text-transform: uppercase; 
+            letter-spacing: 2px; 
+            margin-bottom: 30px;
+        }
+        
+        .config-section { 
+            background: #222; 
+            padding: 20px; 
+            border-radius: 8px; 
+            margin-bottom: 25px; 
+            border-left: 4px solid #d4af37; 
+        }
+        
+        label {
+            font-weight: bold;
+            color: #bbb;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        input[type="password"], input[type="text"] { 
+            width: 100%; 
+            padding: 12px; 
+            margin-bottom: 15px; 
+            background: #1a1a1a; 
+            border: 1px solid #444; 
+            color: #fff; 
+            border-radius: 4px; 
+            box-sizing: border-box; 
+            font-size: 16px;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #d4af37;
+        }
+
+        button { 
+            background: #d4af37; 
+            color: #121212; 
+            border: none; 
+            padding: 14px 20px; 
+            cursor: pointer; 
+            border-radius: 4px; 
+            font-weight: bold; 
+            font-size: 16px;
+            width: 100%; 
+            transition: background 0.3s, transform 0.1s; 
+        }
+        
+        button:hover { background: #f1c40f; }
+        button:active { transform: scale(0.98); }
+        
+        /* Estilos do Cartão Gerado */
+        .card { 
+            background: linear-gradient(145deg, #2a2a2a, #1f1f1f);
+            padding: 25px; 
+            border-radius: 8px; 
+            margin-top: 25px; 
+            display: none; 
+            border: 1px solid #444; 
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+        }
+        
+        .stat-block { 
+            display: flex; 
+            flex-wrap: wrap; 
+            gap: 10px; 
+            margin-top: 20px; 
+            margin-bottom: 20px;
+        }
+        
+        .stat { 
+            background: #111; 
+            padding: 12px; 
+            border-radius: 6px; 
+            text-align: center; 
+            flex: 1; 
+            min-width: 60px; 
+            border: 1px solid #333;
+        }
+        
+        .stat-name { font-size: 0.8em; color: #888; text-transform: uppercase;}
+        .stat-value { font-size: 1.4em; font-weight: bold; color: #d4af37; margin-top: 5px;}
+        
+        #loading { 
+            display: none; 
+            text-align: center; 
+            color: #d4af37; 
+            margin-top: 20px; 
+            font-style: italic;
+            font-size: 18px;
+        }
+
+        ul { padding-left: 20px; color: #ccc; }
+        li { margin-bottom: 8px; line-height: 1.5; }
+    </style>
+</head>
+<body>
+    <canvas id="bg-canvas"></canvas>
+
+    <div class="container">
+        <h1>Codex do Mestre</h1>
+        
+        <div class="config-section">
+            <label for="apiKey">Chave da API do Gemini (Salva apenas neste navegador):</label>
+            <input type="password" id="apiKey" placeholder="Cole sua API Key aqui...">
+            <button onclick="saveKey()">Salvar Chave Segura</button>
+        </div>
+
+        <div>
+            <label for="prompt">O que os deuses devem forjar hoje?</label>
+            <input type="text" id="prompt" placeholder="Ex: Um líder bandido elfo da floresta para um grupo de nível 3...">
+            <button onclick="generateContent()">Invocar Criação</button>
+        </div>
+        
+        <div id="loading">Consultando os tomos antigos... aguarde.</div>
+
+        <div id="outputCard" class="card">
+            <h2 id="cardName" style="color: #d4af37; margin-top: 0; border-bottom: 1px solid #444; padding-bottom: 10px;"></h2>
+            <p style="color: #ccc; line-height: 1.6; font-style: italic;">"<span id="cardDesc"></span>"</p>
+            
+            <div class="stat-block" id="statsArea"></div>
+            
+            <h3 style="color: #d4af37; margin-bottom: 10px;">Ações & Habilidades:</h3>
+            <ul id="cardActions"></ul>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <script>
+        // --- 1. CONFIGURAÇÃO DO THREE.JS (O D20 3D) ---
+        const canvas = document.getElementById('bg-canvas');
+        const scene = new THREE.Scene();
+        
+        // Câmera adaptada para a tela
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
+        
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+
+        // Geometria de Icosaedro é exatamente um dado de 20 faces (D20)
+        const geometry = new THREE.IcosahedronGeometry(3, 0);
+        
+        // Material wireframe dourado
+        const material = new THREE.MeshBasicMaterial({ 
+            color: 0xd4af37, 
+            wireframe: true,
+            transparent: true,
+            opacity: 0.15 // Bem sutil para não atrapalhar a leitura
+        });
+        
+        const d20 = new THREE.Mesh(geometry, material);
+        
+        // Posicionando o dado um pouco para a direita
+        d20.position.set(4, 0, -8);
+        scene.add(d20);
+
+        // Função de Animação
+        function animate() {
+            requestAnimationFrame(animate);
+            // Rotação contínua e suave
+            d20.rotation.x += 0.002;
+            d20.rotation.y += 0.003;
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // Responsividade do 3D ao redimensionar a janela
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+
+        // --- 2. LÓGICA DO APP E INTEGRAÇÃO COM GEMINI API ---
+        
+        // Carrega a chave ao abrir a página
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedKey = localStorage.getItem('dndGeminiApiKey');
+            if (savedKey) {
+                document.getElementById('apiKey').value = savedKey;
+            }
+        });
+
+        function saveKey() {
+            const key = document.getElementById('apiKey').value.trim();
+            if (key) {
+                localStorage.setItem('dndGeminiApiKey', key);
+                alert('Chave salva com segurança no seu navegador!');
+            }
+        }
+
+        async function generateContent() {
+            const apiKey = localStorage.getItem('dndGeminiApiKey');
+            const promptInput = document.getElementById('prompt').value.trim();
+
+            if (!apiKey) {
+                alert('Mestre, você precisa salvar a Chave da API primeiro.');
+                return;
+            }
+            if (!promptInput) {
+                alert('Descreva o que deseja criar.');
+                return;
+            }
+
+            // UI updates
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('outputCard').style.display = 'none';
+            
+            // Efeito visual: o D20 gira rápido enquanto "pensa"
+            d20.rotation.x += 0.5;
+            d20.rotation.y += 0.5;
+
+            // Prompt focado em extrair um JSON limpo
+            const systemPrompt = `
+                Atue como um Mestre de Dungeons & Dragons 5e. 
+                Crie o conteúdo solicitado e retorne EXCLUSIVAMENTE um objeto JSON válido, sem marcação markdown (não use \`\`\`json), com a estrutura exata abaixo:
+                {
+                    "nome": "Nome do NPC ou Monstro",
+                    "descricao": "Aparência e comportamento resumidos",
+                    "atributos": {"FOR": 15, "DES": 12, "CON": 14, "INT": 8, "SAB": 10, "CAR": 8},
+                    "acoes": ["Ataque com Espada Curta: +5 para acertar, 1d6+3 de dano cortante.", "Habilidade Especial: Detalhes aqui."]
+                }
+                
+                Pedido: ${promptInput}
+            `;
+
+            try {
+                // Usando a versão flash que é extremamente rápida para textos curtos
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: systemPrompt }] }]
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Falha na comunicação com a API. Verifique sua chave.');
+                }
+
+                const data = await response.json();
+                
+                // Limpeza preventiva de possíveis crases markdown do retorno do Gemini
+                let jsonText = data.candidates[0].content.parts[0].text;
+                jsonText = jsonText.replace(/```json/gi, '').replace(/```/g, '').trim();
+                
+                const result = JSON.parse(jsonText);
+                renderCard(result);
+
+            } catch (error) {
+                console.error(error);
+                alert('Erro na invocação: ' + error.message);
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        // Função para injetar o JSON no HTML
+        function renderCard(data) {
+            document.getElementById('cardName').innerText = data.nome || 'Entidade Desconhecida';
+            document.getElementById('cardDesc').innerText = data.descricao || 'Nenhuma descrição fornecida.';
+            
+            const statsArea = document.getElementById('statsArea');
+            statsArea.innerHTML = '';
+            
+            // Renderiza os atributos dinamicamente
+            if (data.atributos) {
+                for (const [key, value] of Object.entries(data.atributos)) {
+                    statsArea.innerHTML += \`
+                        <div class="stat">
+                            <div class="stat-name">\${key}</div>
+                            <div class="stat-value">\${value}</div>
+                        </div>
+                    \`;
+                }
+            }
+
+            const actionsArea = document.getElementById('cardActions');
+            actionsArea.innerHTML = '';
+            
+            // Renderiza a lista de ações
+            if (data.acoes && data.acoes.length > 0) {
+                data.acoes.forEach(acao => {
+                    actionsArea.innerHTML += \`<li>\${acao}</li>\`;
+                });
+            } else {
+                 actionsArea.innerHTML = \`<li>Nenhuma ação de combate mapeada.</li>\`;
+            }
+
+            // Exibe o cartão
+            document.getElementById('outputCard').style.display = 'block';
+        }
+    </script>
+</body>
+</html>
